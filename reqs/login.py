@@ -1,12 +1,5 @@
 import base64
 import requests
-from io import BytesIO
-
-try:
-    from PIL import Image
-except ImportError:
-    Image = None
-    
 import utils
 from json_rsp_ctrl import Ctrl, JsonRspType, In
 
@@ -48,7 +41,7 @@ class LoginReq:
         temp_params = f'appkey={user.dict_bilitv["appkey"]}'
         sign = user.calc_sign_tv(temp_params)
         params = {'appkey': user.dict_bilitv['appkey'], 'sign': sign}
-        json_rsp = await user.login_session.request_json('POST', url, data=params, is_login=True)
+        json_rsp = await user.login_session.request_json('POST', url, data=params)
         return json_rsp
 
     @staticmethod
@@ -75,7 +68,7 @@ class LoginReq:
         sign = user.calc_sign_tv(temp_params)
         payload = f'{temp_params}&sign={sign}'
         url = "https://passport.snm0516.aisee.tv/api/tv/login"
-        json_rsp = await user.login_session.request_json('POST', url, params=payload, is_login=True)
+        json_rsp = await user.login_session.request_json('POST', url, params=payload)
         return json_rsp
         
     @staticmethod
