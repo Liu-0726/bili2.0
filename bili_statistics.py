@@ -44,7 +44,7 @@ class CoverChecker:
 
 @attr.s(slots=True)
 class DuplicateChecker:
-    LIST_SIZE_LIMITED = 1500
+    LIST_SIZE_LIMITED = 10000
 
     number = attr.ib(default=0, init=False)
     ids = attr.ib(init=False)
@@ -205,8 +205,17 @@ class BiliStatistics:
             print()
 
             print('当日参与任务统计（null类任务不计入；只是压入计划，不一定已经参与；整点清零）：')
-            print(self.max_time_task_checkers)
-            print(self.unique_task_checkers)
+            #print(self.max_time_task_checkers.records)
+            #print(self.unique_task_checkers)
+            max_time_task_checkers = self.max_time_task_checkers.records[0]
+            unique_task_checkers = self.unique_task_checkers.records[0]
+            print('=========================')
+            for task in max_time_task_checkers:
+                print(f'{max_time_task_checkers[task].num:^5} X {task.TASK_NAME}')
+            print('=========================')
+            for task in unique_task_checkers:
+                print(f'{time_str(unique_task_checkers[task].start_time)} --- {time_str(unique_task_checkers[task].end_time)} : {task.TASK_NAME}')
+            
             
     def add2pushed_raffles(self, raffle_name, broadcast_type, num):
         orig_num = self.pushed_raffles.get(raffle_name, 0)
