@@ -19,10 +19,12 @@ watch_tv = -1  # 双端观看任务 live_daily_job.py
 sign_fans_group = -1  # 应援团签到 live_daily_job.py
 send_gift = -1  # 勋章赠送礼物、赠送即将过期的礼物 live_daily_job.py
 exchange_silver_coin = -1  # 每日瓜子硬币兑换 live_daily_job.py
+manga_sign = -1   # 哔哩哔哩漫画 签到
+share_comic = -1  # 哔哩哔哩漫画 分享
 
 judge_case = -1  # 风纪委 main_daily_job.py
 bili_main = -1  # 主站每日任务，投币、分享、观看、登录 main_daily_job.py
-
+dahuiyuan = -1  # 自动领大会员福利 B币 main_daily_job.py
 
 
 [custom_task_arrangement]  # 与global_task_arrangement对应。针对某个具体用户的自定义(如果用户没有自定义的部分，就使用前面global那里的配置)
