@@ -82,9 +82,9 @@ class BiliConsole(Cmd):
         self.__parser_15 = self.compile_parser('15 || --room_id/-p {room_id?%default_roomid}')
         self.__parser_16 = self.compile_parser('16 || --ctrl/-c {bool}')
 
-        self.__parser_21 = self.compile_parser('21 || --room_id/-p {room_id?%default_roomid}'
+        self.__parser_21 = self.compile_parser('21 || --user_id/-u {int?0} || --room_id/-p {room_id?%default_roomid}'
                                                ' || --num/-n {int}')
-        self.__parser_22 = self.compile_parser('22 || --room_id/-p {room_id?%default_roomid}'
+        self.__parser_22 = self.compile_parser('22 || --user_id/-u {int?0} || --room_id/-p {room_id?%default_roomid}'
                                                ' || --num/-n {int}')
         self.__parser_23 = self.compile_parser('23 || --user_id/-u {int?0} || --coin_type/-c {str}'
                                                ' || --room_id/-p {room_id?%default_roomid}')
@@ -263,14 +263,14 @@ class BiliConsole(Cmd):
             FuncCore(printer.control_printer, ctrl))
 
     def do_21(self, arg):
-        real_roomid, num_max = self.parse(arg, self.__parser_21)
+        user_id, real_roomid, num_max = self.parse(arg, self.__parser_21)
         self.exec_func_threads(
-            FuncCore(notifier.exec_task, SendLatiaoTask, 'cmd', real_roomid, num_max))
+            FuncCore(notifier.exec_task, SendLatiaoTask, 'cmd', user_id, real_roomid, num_max))
         
     def do_22(self, arg):
-        real_roomid, num_wanted = self.parse(arg, self.__parser_22)
+        user_id, real_roomid, num_wanted = self.parse(arg, self.__parser_22)
         self.exec_func_threads(
-            FuncCore(notifier.exec_task, BuyLatiaoTask, 'cmd', real_roomid, num_wanted))
+            FuncCore(notifier.exec_task, BuyLatiaoTask, 'cmd', user_id, real_roomid, num_wanted))
         
     def do_23(self, arg):
         user_id, coin_type, real_roomid = self.parse(arg, self.__parser_23)  # coin_type = 'silver' /  'metal'
