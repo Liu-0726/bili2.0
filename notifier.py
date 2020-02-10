@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Optional, List, Callable
+from typing import Optional, Callable
 
 import aiojobs
 
@@ -11,15 +11,16 @@ from printer import info as print
 
 
 class Users:
-    __slots__ = ('_users',)
+    __slots__ = ('_users', '_global_task_control', '_global_task_arrangement', '_dict_bili', '_force_sleep')
 
-    def __init__(self, users: List[User]):
-        self._users = users
-
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            return self._users[key]
-        return None
+    def __init__(self,
+                 global_task_control: dict, global_task_arrangement: dict,
+                 dict_bili: dict, force_sleep: Callable):
+        self._users = []
+        self._global_task_control = global_task_control
+        self._global_task_arrangement = global_task_arrangement
+        self._dict_bili = dict_bili
+        self._force_sleep = force_sleep
 
     @property
     def superuser(self) -> User:
@@ -33,7 +34,9 @@ class Users:
                     'open_silver_box',
                     'join_storm_raffle',
                     'join_guard_raffle',
-                    'join_tv_raffle'):
+                    'join_tv_raffle',
+                    'join_pk_raffle'
+            ):
                 continue
             if task_name != 'null':  # null 就忽略过滤，直接参与
                 if f'probability_{task_name}' in user.task_arrangement:  # 平均概率筛选
@@ -46,14 +49,24 @@ class Users:
                     continue
             yield user
 
+    # async 只是为了 User 里面的 aiohttp 的 session;即使切了也没啥吧，append 的时候不切换协程，对 notifier 运行中不会造成什么影响
+    async def add_user(self, user_info: dict, custom_task_control: dict, custom_task_arrangement: dict):
+        task_control = {**self._global_task_control, **custom_task_control}
+        task_arrangement = {**self._global_task_arrangement, **custom_task_arrangement}
+
+        user = User(
+            dict_user=user_info,
+            task_ctrl=task_control,
+            task_arrangement=task_arrangement,
+            dict_bili=self._dict_bili,
+            force_sleep=self._force_sleep)
+        self._users.append(user)
+
     def gets(self, index: int):
         if index == -2:
             for user in self._users:
                 yield user
             return
-        # TODO: 废除，统一为0
-        if index == -1:
-            index = 0
         user = self._users[index]
         yield user
 
@@ -69,8 +82,11 @@ class Notifier:
         self._users: Optional[Users] = None
         self._scheduler: Optional[aiojobs.Scheduler] = None
 
-    def init(self, users: List[User]):
-        self._users = Users(users)
+    def init(self, users: Users):
+        self._users = users
+
+    async def add_user(self, **kwargs):
+        await self._users.add_user(**kwargs)
 
     # pause 和 resume 必须在同一个循环里面用，否则可能发生类似线程不安全的东西
     async def resume(self):
@@ -84,24 +100,25 @@ class Notifier:
             await scheduler.close()
 
     @staticmethod
-    async def __unique_work(user: User, task, func: Callable, *args, **kwargs):
+    async def _unique_work(user: User, task, func: Callable, *args, **kwargs):
         if bili_statistics.start_unique_task(user.id, task):
             try:
                 result = await func(user, *args, **kwargs)
                 bili_statistics.done_unique_task(user.id, task)
                 return result
             except asyncio.CancelledError:
-                print(f'❌取消正在进行的{func} {user.id}任务')
+                print(f'CONFIRMED CANCEL {user} {func}')
                 bili_statistics.cancel_unique_task(user.id, task)
         else:
             print(f'重复推送{func} {user.id}（此为debug信息忽略即可）')
         return None
 
     @staticmethod
-    async def __multi_work(user: User, _, func: Callable, *args, **kwargs):
+    async def _multi_work(user: User, _, func: Callable, *args, **kwargs):
         try:
             return await func(user, *args, **kwargs)
         except asyncio.CancelledError:
+            print(f'CONFIRMED CANCEL {user} {func}')
             return None
 
     async def run_sched_func(self, func: Callable, *args, **kwargs):
@@ -125,24 +142,24 @@ class Notifier:
     def run_forced_func_bg(self, *args, **kwargs):
         self._loop.create_task(self.run_forced_func(*args, **kwargs))
 
-    async def __dont_wait(self, task,
-                          handle_work: Callable,
-                          handle_unique: Callable,
-                          func_work: Callable,
-                          check_results,
-                          _):
+    async def _dont_wait(self, task,
+                         handle_work: Callable,
+                         handle_unique: Callable,
+                         func_work: Callable,
+                         check_results,
+                         _):
         for user_id, delay_range, *args in check_results:
             for user in self._users.gets_with_restrict(user_id, task):
                 delay = random.uniform(*delay_range)
                 self._loop.call_later(
                     delay, handle_work, handle_unique, user, task, func_work, *args)
 
-    async def __wait(self, task,
-                     handle_work: Callable,
-                     handle_unique: Callable,
-                     func_work: Callable,
-                     check_results,
-                     return_results: bool):
+    async def _wait(self, task,
+                    handle_work: Callable,
+                    handle_unique: Callable,
+                    func_work: Callable,
+                    check_results,
+                    return_results: bool):
         if not return_results:
             for user_id, _, *args in check_results:
                 for user in self._users.gets_with_restrict(user_id, task):
@@ -155,12 +172,12 @@ class Notifier:
                 results.append(await handle_work(handle_unique, user, task, func_work, *args))
         return results
 
-    async def __wait_and_pass(self, task,
-                              handle_work: Callable,
-                              handle_unique: Callable,
-                              func_work: Callable,
-                              check_results,
-                              return_results: bool):
+    async def _wait_and_pass(self, task,
+                             handle_work: Callable,
+                             handle_unique: Callable,
+                             func_work: Callable,
+                             check_results,
+                             return_results: bool):
         if not return_results:
             for user_id, _, *args in check_results:
                 result = args
@@ -183,10 +200,11 @@ class Notifier:
 
         async def 工作函数()  # work / webconsole_work / cmdconsole_work
     '''
+
     # handle_check notifier 执行 task.check 函数时的包裹函数
     # handle_works notifier 执行 task 的"工作函数"时的包裹函数
     # handle_work 执行具体每个 user 的"工作函数"时外层包裹函数，WAIT WAIT_AND_PASS 时无效,一定是forced的
-    # handle_unique 执行具体每个 user 的"工作函数时"时内层包裹函数  __unique_work / __multi_work
+    # handle_unique 执行具体每个 user 的"工作函数时"时内层包裹函数  _unique_work / _multi_work
     # func_work "工作函数" eg: task.work
     async def exec_task(self, task, *args, **kwargs):
         handle_check = None
@@ -215,22 +233,22 @@ class Notifier:
                 need_results = False
 
         if task.HOW2CALL == How2Call.DONT_WAIT:
-            handle_works = self.__dont_wait
+            handle_works = self._dont_wait
             if task.TASK_TYPE == TaskType.SCHED:
                 handle_work = self.run_sched_func_bg
             else:
                 handle_work = self.run_forced_func_bg
         elif task.HOW2CALL == How2Call.WAIT:
-            handle_works = self.__wait
+            handle_works = self._wait
             handle_work = self.run_forced_func
         elif task.HOW2CALL == How2Call.WAIT_AND_PASS:
-            handle_works = self.__wait_and_pass
+            handle_works = self._wait_and_pass
             handle_work = self.run_forced_func
 
         if task.UNIQUE_TYPE == UniqueType.MULTI:
-            handle_unique = self.__multi_work
+            handle_unique = self._multi_work
         elif task.UNIQUE_TYPE == UniqueType.UNIQUE:
-            handle_unique = self.__unique_work
+            handle_unique = self._unique_work
 
         check_results = await handle_check(task.check, self._users.superuser, *args, **kwargs)
         print('check_results:', task, check_results)
@@ -250,8 +268,8 @@ class Notifier:
 var_notifier = Notifier()
 
 
-def init(*args, **kwargs):
-    var_notifier.init(*args, **kwargs)
+def init(**kwargs):
+    var_notifier.init(**kwargs)
 
 
 async def exec_task(task, *args, **kwargs):
@@ -272,6 +290,10 @@ async def pause():
 
 async def resume():
     await var_notifier.resume()
+
+
+async def add_user(**kwargs):
+    await var_notifier.add_user(**kwargs)
 
 
 def get_users(user_id: int):

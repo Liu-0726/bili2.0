@@ -42,14 +42,14 @@ class User:
         # 每个user里面都分享了同一个dict，必须要隔离，否则更新cookie这些的时候会互相覆盖
         self.dict_bili = copy.deepcopy(dict_bili)
         self.dict_bilitv = copy.deepcopy(dict_bilitv)
-        self.app_params = [
-            f'actionKey={dict_bili["actionKey"]}',
-            f'appkey={dict_bili["appkey"]}',
-            f'build={dict_bili["build"]}',
-            f'device={dict_bili["device"]}',
-            f'mobi_app={dict_bili["mobi_app"]}',
-            f'platform={dict_bili["platform"]}',
-        ]
+        self.app_params = {
+            'actionKey': dict_bili['actionKey'],
+            'appkey': dict_bili['appkey'],
+            'build': dict_bili['build'],
+            'device': dict_bili['device'],
+            'mobi_app': dict_bili['mobi_app'],
+            'platform': dict_bili['platform'],
+        }
         self.update_login_data(dict_user)
 
         self._waiting_login = None
@@ -98,29 +98,42 @@ class User:
         text = f'{text}{self.dict_bili["app_secret"]}'
         return hashlib.md5(text.encode('utf-8')).hexdigest()
         
-    def sort_and_sign(self, extra_params: Optional[list] = None) -> str:
+    def sort_and_sign(self, extra_params: Optional[dict] = None) -> dict:
         if extra_params is None:
-            text = "&".join(self.app_params)
+            dict_params = self.app_params.copy()
         else:
-            text = "&".join(sorted(self.app_params+extra_params))
+            dict_params = {**self.app_params, **extra_params}
+
+        list_params = [f'{key}={value}' for key, value in dict_params.items()]
+        list_params.sort()
+        text = "&".join(list_params)
         text_with_appsecret = f'{text}{self.dict_bili["app_secret"]}'
         sign = hashlib.md5(text_with_appsecret.encode('utf-8')).hexdigest()
-        return f'{text}&sign={sign}'
+        dict_params['sign'] = sign
+        return dict_params
         
-    def sort_and_sign_tv(self, extra_params: Optional[list] = None) -> str:
+    def sort_and_sign_tv(self, extra_params: Optional[dict] = None) -> dict:
         if extra_params is None:
-            text = "&".join(self.app_params)
+            dict_params = self.app_params.copy()
         else:
-            text = "&".join(sorted(self.app_params+extra_params))
+            dict_params = {**self.app_params, **extra_params}
+
+        list_params = [f'{key}={value}' for key, value in dict_params.items()]
+        list_params.sort()
+        text = "&".join(list_params)
         text_with_appsecret = f'{text}{self.dict_bilitv["app_secret"]}'
         sign = hashlib.md5(text_with_appsecret.encode('utf-8')).hexdigest()
-        return f'{text}&sign={sign}'
+        dict_params['sign'] = sign
+        return dict_params
 
-    async def req_s(self, func, *args):
+    async def req_s(self, func, *args, timeout=None):
         while True:
             if self._waiting_login is None:
                 try:
-                    return await func(*args)
+                    return await asyncio.wait_for(func(*args), timeout=timeout)
+                except asyncio.TimeoutError:
+                    self.info(f'TASK {func} 请求超时，即将 CANCEL')
+                    raise asyncio.CancelledError()
                 except exceptions.LogoutError:  # logout
                     if self._waiting_login is None:  # 当前没有处理的运行
                         self.info('判定出现了登陆失败，且未处理')
