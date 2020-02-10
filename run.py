@@ -63,6 +63,7 @@ async def init_users():
     users = notifier.Users(global_task_control=global_task_control,
                            global_task_arrangement=global_task_arrangement,
                            dict_bili=dict_bili,
+                           dict_bilitv = dict_bilitv,
                            force_sleep=bili_sched.force_sleep)
     notifier.init(users=users)
     assert dict_user['users']  # 这个 list 为 true 表示至少要有一个用户信息

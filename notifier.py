@@ -11,15 +11,16 @@ from printer import info as print
 
 
 class Users:
-    __slots__ = ('_users', '_global_task_control', '_global_task_arrangement', '_dict_bili', '_force_sleep')
+    __slots__ = ('_users', '_global_task_control', '_global_task_arrangement', '_dict_bili', '_dict_bilitv', '_force_sleep')
 
     def __init__(self,
                  global_task_control: dict, global_task_arrangement: dict,
-                 dict_bili: dict, force_sleep: Callable):
+                 dict_bili: dict, dict_bilitv: dict, force_sleep: Callable):
         self._users = []
         self._global_task_control = global_task_control
         self._global_task_arrangement = global_task_arrangement
         self._dict_bili = dict_bili
+        self._dict_bilitv = dict_bilitv
         self._force_sleep = force_sleep
 
     @property
@@ -59,6 +60,7 @@ class Users:
             task_ctrl=task_control,
             task_arrangement=task_arrangement,
             dict_bili=self._dict_bili,
+            dict_bilitv=self._dict_bilitv,
             force_sleep=self._force_sleep)
         self._users.append(user)
 

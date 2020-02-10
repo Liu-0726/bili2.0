@@ -32,7 +32,7 @@ class WebSession:
         return await rsp.read()
 
     async def once_req(self, method, url, **kwargs):
-        return await self.__once_req(self.__receive_json, method, url, **kwargs)
+        return await self.__once_req(self._recv_json, method, url, **kwargs)
         
     async def __once_req(self, parse_rsp, method, url, **kwargs):
         try:

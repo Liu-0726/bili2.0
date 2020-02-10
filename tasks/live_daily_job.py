@@ -134,17 +134,19 @@ class SignFansGroupsTask(Sched, DontWait, Unique):
         for group in json_rsp['data']['list']:
             group_id = group['group_id']
             owner_uid = group['owner_uid']
-            json_rsp = await user.req_s(SignFansGroupsReq.sign_group, user, group_id, owner_uid)
-            if not json_rsp['code']:
-                data = json_rsp['data']
-                if data['status']:
-                    user.info(f'应援团 {group_id} 已应援过')
+            while True:
+                json_rsp = await user.req_s(SignFansGroupsReq.sign_group, user, group_id, owner_uid)
+                if not json_rsp['code']:
+                    data = json_rsp['data']
+                    if data['status']:
+                        user.info(f'应援团 {group_id} 已应援过')
+                    else:
+                        user.info(f'应援团 {group_id} 应援成功,获得 {data["add_num"]} 点亲密度')
+                    break
                 else:
-                    user.info(f'应援团 {group_id} 应援成功,获得 {data["add_num"]} 点亲密度')
-            else:
-                user.info(f'应援团 {group_id} 应援失败')
-            
-            
+                    user.info(f'应援团 {group_id} 应援失败')
+                    await asyncio.sleep(1)
+                    
 class SendGiftTask(Sched, DontWait, Unique):
     TASK_NAME = 'send_gift'
 
