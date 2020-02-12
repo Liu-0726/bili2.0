@@ -134,6 +134,7 @@ class SignFansGroupsTask(Sched, DontWait, Unique):
         for group in json_rsp['data']['list']:
             group_id = group['group_id']
             owner_uid = group['owner_uid']
+            error_count = 0
             while True:
                 json_rsp = await user.req_s(SignFansGroupsReq.sign_group, user, group_id, owner_uid)
                 if not json_rsp['code']:
@@ -144,8 +145,11 @@ class SignFansGroupsTask(Sched, DontWait, Unique):
                         user.info(f'应援团 {group_id} 应援成功,获得 {data["add_num"]} 点亲密度')
                     break
                 else:
+                    if error_count > 3:
+                        break
                     user.info(f'应援团 {group_id} 应援失败')
                     await asyncio.sleep(1)
+                    error_count += 1
                     
 class SendGiftTask(Sched, DontWait, Unique):
     TASK_NAME = 'send_gift'
