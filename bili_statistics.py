@@ -146,7 +146,7 @@ class BiliStatistics:
     __slots__ = (
         'area_num', 'area_duplicated', 'pushed_raffles',
         'joined_raffles', 'raffle_results',
-        'danmu_raffleid_checker', 'cover_checker0', 'cover_checker1',
+        'danmu_raffleid_checker', 'cover_checker0', 'cover_checker1','cover_checker2',
         'max_time_task_checkers', 'unique_task_checkers'
     )
 
@@ -164,6 +164,7 @@ class BiliStatistics:
         self.danmu_raffleid_checker = DuplicateChecker()
         self.cover_checker0 = CoverChecker()  # 舰队风暴遗漏统计
         self.cover_checker1 = CoverChecker()  # 小电视遗漏统计
+        self.cover_checker2 = CoverChecker()  # BigId小电视遗漏统计
 
         # 用于限制每天用户最多某个任务的最大参与次数
         self.max_time_task_checkers = MaxTimeTaskCheckers()  # {use0: {task0: 1, task1: 2}, user1: {task1: 9}}
@@ -178,6 +179,7 @@ class BiliStatistics:
         print('本次抽奖推送数据：')
         print(f'舰队风暴推送遗漏统计：{self.cover_checker0.result()}')
         print(f'小电视的推送遗漏统计：{self.cover_checker1.result()}')
+        print(f'BigId小电视的推送遗漏统计：{self.cover_checker2.result()}')
         print(f'全部弹幕抽奖推送统计：{self.danmu_raffleid_checker.result()}')
         print()
 
@@ -247,7 +249,10 @@ class BiliStatistics:
         if raffle_type in ('STORM', 'GUARD'):
             self.cover_checker0.add2checker(raffle_id)
         elif raffle_type in ('TV',):
-            self.cover_checker1.add2checker(raffle_id)
+            if raffle_id > 1000000:
+                self.cover_checker2.add2checker(raffle_id)
+            else:
+                self.cover_checker1.add2checker(raffle_id)
         self.danmu_raffleid_checker.add2checker(raffle_id, need_check_duplicated=False)
     
     def is_raffleid_duplicate(self, raffle_id: int):
