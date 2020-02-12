@@ -249,7 +249,7 @@ class BiliStatistics:
         if raffle_type in ('STORM', 'GUARD'):
             self.cover_checker0.add2checker(raffle_id)
         elif raffle_type in ('TV',):
-            if raffle_id > 1000000:
+            if raffle_id >= 1000000:
                 self.cover_checker2.add2checker(raffle_id)
             else:
                 self.cover_checker1.add2checker(raffle_id)
