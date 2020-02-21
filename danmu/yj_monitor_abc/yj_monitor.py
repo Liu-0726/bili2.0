@@ -9,7 +9,7 @@ from printer import warn
 
 
 class TcpDanmuClient(Client):
-    __slots__ = ('_key', '_pack_heartbeat')
+    __slots__ = ('_key', '_pack_heartbeat', '_error_count')
 
     def __init__(
             self, key: str, url: str, area_id: int, loop=None):
@@ -26,6 +26,7 @@ class TcpDanmuClient(Client):
         self._key = key
 
         self._pack_heartbeat = Pack.pack(str_body='')
+        self._error_count = 0
 
     async def _one_hello(self) -> bool:
         dict_enter = {
@@ -64,8 +65,12 @@ class TcpDanmuClient(Client):
             print(f'{self._area_id} 号数据连接确认建立连接（{self._key}）')
         elif data_type == 'error':
             warn(f'{self._area_id} 号数据连接发生致命错误{json_body}')
-            self._closed = True  # 内部关闭，不再重连
+            self._error_count += 1
+            # 失败三次 不再重连
+            if self._error_count > 3:
+                self._closed = True  # 内部关闭，不再重连
             return False
+        self._error_count = 0
         return True
 
     def handle_danmu(self, data: dict) -> bool:
