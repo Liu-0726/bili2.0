@@ -209,8 +209,8 @@ class BiliStatistics:
             print('当日参与任务统计（null类任务不计入；只是压入计划，不一定已经参与；整点清零）：')
             #print(self.max_time_task_checkers.records)
             #print(self.unique_task_checkers)
-            max_time_task_checkers = self.max_time_task_checkers.records[0]
-            unique_task_checkers = self.unique_task_checkers.records[0]
+            max_time_task_checkers = self.max_time_task_checkers.records.get(user_id, {})
+            unique_task_checkers = self.unique_task_checkers.records.get(user_id, {})
             print('=========================')
             for task in max_time_task_checkers:
                 print(f'{max_time_task_checkers[task].num:^5} X {task.TASK_NAME}')

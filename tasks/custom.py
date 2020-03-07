@@ -9,8 +9,8 @@ class SendLatiaoTask(Console, WaitAndPass, Multi):
     TASK_NAME = 'null'
 
     @staticmethod
-    async def check(_, room_id, num_max):
-        return (-2, None, room_id, num_max),
+    async def check(_, user_id, room_id, num_max):
+        return (user_id, None, room_id, num_max),
 
     # remain 为 0，不投喂；为 -1， 全部投喂；其他正常投喂
     @staticmethod
@@ -46,8 +46,8 @@ class BuyLatiaoTask(Console, Wait, Multi):
     TASK_NAME = 'null'
 
     @staticmethod
-    async def check(_, room_id, num_wanted):
-        return (-2, None, room_id, num_wanted),
+    async def check(_, user_id, room_id, num_wanted):
+        return (user_id, None, room_id, num_wanted),
 
     @staticmethod
     async def fetch_silver(user):
