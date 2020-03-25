@@ -110,6 +110,11 @@ class BiliMainReq:
         url = 'https://www.bilibili.com/ranking/all/0/0/1/'
         text_tsp = await user.other_session.request_text('GET', url, headers=user.dict_bili['pcheaders'])
         return text_tsp
+    @staticmethod
+    async def fetch_top_videos_new(user,**kwargs):
+        url = 'https://api.bilibili.com/x/web-interface/ranking?day=3'
+        json_rsp = await user.other_session.request_json('GET', url, headers=user.dict_bili['pcheaders'],**kwargs)
+        return json_rsp
 
 
 class DahuiyuanReq:

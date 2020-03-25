@@ -148,8 +148,10 @@ class BiliMainTask(Sched, DontWait, Unique):
     
     @staticmethod
     async def fetch_top_videos(user):
-        text_rsp = await user.req_s(BiliMainReq.fetch_top_videos, user)
-        aids = [i.group(1) for i in re.finditer(r'www.bilibili.com/video/av(\d+)', text_rsp)]
+        #text_rsp = await user.req_s(BiliMainReq.fetch_top_videos, user)
+        #aids = [i.group(1) for i in re.finditer(r'www.bilibili.com/video/av(\d+)', text_rsp)]
+        json_rsp = await user.req_s(BiliMainReq.fetch_top_videos_new, user)
+        aids = [i['aid'] for i in json_rsp['data']['list']]
         if not aids:
             user.warn(f'{text_rsp}, aid这里')
         # print(aids)

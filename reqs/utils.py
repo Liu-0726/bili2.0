@@ -30,9 +30,6 @@ class UtilsReq:
         
     @staticmethod
     async def init_room(user, roomid):
-        response = await UtilsReq.init_room_ex(user, roomid)
-        if response['code'] != -1:
-            return response
         url = f"{API_LIVE}/room/v1/Room/room_init?id={roomid}"
         # {"code":60004,"msg":"房间不存在","message":"房间不存在","data":[]}
         # api会抽风

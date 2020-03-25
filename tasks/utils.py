@@ -22,6 +22,7 @@ class UtilsTask:
     async def is_normal_room(user, room_id) -> bool:
         if not room_id:
             return True
+        await UtilsReq.init_room_ex(user, room_id)
         json_rsp = await user.req_s(UtilsReq.init_room, user, room_id)
         if not json_rsp['code']:
             data = json_rsp['data']
